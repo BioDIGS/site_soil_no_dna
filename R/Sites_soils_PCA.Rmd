@@ -1,0 +1,115 @@
+---
+title: "Compare Sites/Samples - PCA"
+author: "Ava Hoffman"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Load Data
+
+```{r}
+# Choose one: data_source <- c("local", "github", "google")
+data_source <- "local"
+```
+
+
+```{r}
+if (data_source == "local") {
+  # Look in pwd for specific snapshots
+  sites_full <- read_csv("data/snapshots/BioDIGS_sites_20250929.csv")
+  soil_full <- read_csv("data/snapshots/BioDIGS_soil_20250929.csv")
+} else if (data_source == "google") {
+  # All from Google (need access)
+  googlesheets4::gs4_auth(email = T)
+  sites_full <- googlesheets4::read_sheet(
+    "https://docs.google.com/spreadsheets/d/1Mbuym6GgG2B3VFCbjhYy4vaPCx1_tIOBlBOlT1iIHZE/edit?gid=476949426#gid=476949426",
+    sheet = "SITE DATA"
+  )
+} else {
+  # Public snapshot on github if not downloaded
+  sites_full <- read_csv(
+    "https://github.com/FredHutch/GDSCNsoilsites/raw/refs/heads/main/data/snapshots/BioDIGS_sites_20250929.csv"
+  )
+  soil_full <- read_csv(
+    "https://github.com/FredHutch/GDSCNsoilsites/raw/refs/heads/main/data/snapshots/BioDIGS_soil_20250929.csv"
+  )
+}
+```
+
+## Data cleanup
+
+Drop some extra metadata columns:
+
+```{r}
+sites <- sites_full %>% select(c(site_id, origin, gps, mgmt_type, pct_imp_2024))
+soil <- soil_full %>% select(
+  c(
+    collection_date,
+    site_id,
+    sample_id,
+    ends_with("EPA3051"),
+    water_pH,
+    OM_by_LOI_pct,
+    ends_with("Mehlich3"),
+    Est_CEC,
+    Base_Sat_pct,
+    P_Sat_ratio
+  )
+)
+```
+
+Add `NA` and clean some values and classes
+
+```{r}
+soil <- 
+  soil %>%
+  mutate(across(everything(), ~ na_if(., "Not yet tested"))) %>%
+  mutate(As_EPA3051 = case_when(As_EPA3051 %in% c("< 3.0", "<3.0") ~ "0", TRUE ~ As_EPA3051)) %>% 
+  mutate(Cd_EPA3051 = case_when(Cd_EPA3051 %in% c("< 0.2", "<0.2") ~ "0", TRUE ~ Cd_EPA3051)) %>% 
+  mutate(Cu_EPA3051 = case_when(Cu_EPA3051 %in% c("< 2.0", "<2.0") ~ "0", TRUE ~ Cu_EPA3051)) %>% 
+  drop_na() %>% 
+  mutate(across(4:27, as.numeric))
+
+# TODO: make mgmt type; region one hot encoded
+sites <- 
+  sites %>% 
+  tidyr::separate(gps, into = c("lat", "lon"), sep = ", ") %>% 
+  mutate(mgmt_type = as.numeric(as.factor(mgmt_type))) %>% # Make factor and numeric
+  drop_na() %>% 
+  mutate(across(3:6, as.numeric))
+```
+
+## Sample level/scale
+
+What is the PCA pattern among soil samples and locations?
+
+```{r}
+# Includes soil characteristics, gps coords, mgmt type, environment etc.
+sample_level <- soil %>% left_join(sites, by = join_by(site_id))
+
+# Drop non-numeric columns
+sample_level <- 
+  sample_level %>% 
+  mutate(label = stringr::str_remove(sample_id, "Soil_")) %>% 
+  column_to_rownames("label") %>% 
+  select(!c(origin, collection_date, site_id, sample_id))
+
+
+# Run PCA
+pca_out <- prcomp(sample_level, scale = TRUE)
+summary(pca_out)
+
+# % Variance explained by different PCs
+eig_val <- factoextra::get_eigenvalue(pca_out)
+factoextra::fviz_eig(pca_out, col.var="blue")
+
+# Correlation of variables in each PC
+pca_var <- factoextra::get_pca_var(pca_out)
+corrplot::corrplot(pca_var$cos2, is.corr=FALSE)
+
+factoextra::fviz_pca_ind(pca_out, repel = F)
+```
