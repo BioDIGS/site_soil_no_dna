@@ -118,7 +118,7 @@ p3 <- factoextra::fviz_pca_ind(pca_out, repel = F)
 
 # PCA colored by origin
 p4 <- fviz_pca_ind(
-  res.pca,
+  pca_out,
   label = "none",
   habillage = sample_level$origin,
   mean.point = F,
@@ -131,6 +131,59 @@ p4 <- fviz_pca_ind(
 cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 2))
 ggsave(
   "figures/PCA_by_sample.png",
+  height = 10,
+  width = 8,
+  dpi = "print"
+)
+```
+
+## Site level, with soil
+
+What is the PCA pattern at the site level?
+
+```{r}
+# Includes soil characteristics, gps coords, mgmt type, environment etc.
+site_level <- soil %>% select(!c(collection_date, sample_id)) %>% group_by(site_id) %>% 
+  summarize(across(everything(), mean)) %>% 
+  left_join(sites, by = join_by(site_id))
+
+# Drop non-numeric columns
+site_level_pca <-
+  site_level %>%
+  column_to_rownames("site_id") %>%
+  select(!c(origin))
+
+
+# Run PCA
+pca_out <- prcomp(site_level_pca, scale = TRUE)
+summary(pca_out)
+
+# Scree Plot: % Variance explained by different PCs
+eig_val <- factoextra::get_eigenvalue(pca_out)
+p1 <- factoextra::fviz_eig(pca_out, col.var = "blue")
+
+# Correlation of variables in each PC
+pca_var <- factoextra::get_pca_var(pca_out)
+p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none")
+
+# PCA labeled by site
+p3 <- factoextra::fviz_pca_ind(pca_out, repel = F)
+
+# PCA colored by origin
+p4 <- fviz_pca_ind(
+  pca_out,
+  label = "none",
+  habillage = site_level$origin,
+  mean.point = F,
+  palette = viridis::magma(n = length(unique(
+    site_level$origin
+  )), end = 0.9)
+) + ggtitle("PCA: Site level soil and site characteristics") + theme(legend.title = element_blank())
+
+# Save combined plot
+cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 2))
+ggsave(
+  "figures/PCA_by_site.png",
   height = 10,
   width = 8,
   dpi = "print"
