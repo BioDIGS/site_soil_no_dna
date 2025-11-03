@@ -45,7 +45,9 @@ if (data_source == "local") {
 Drop some extra metadata columns:
 
 ```{r}
-sites <- sites_full %>% select(c(site_id, origin, gps, mgmt_type, pct_imp_2024))
+sites <- sites_full %>% 
+  select(c(site_id, origin, gps, mgmt_type, pct_imp_2024)) %>% 
+  mutate(origin = case_when(origin %in% c("Derwood, MD", "Boyds, MD", "Germantown, MD", "Bethesda, MD") ~ "Montgomery Co., MD", TRUE ~ origin))
 soil <- soil_full %>% select(
   c(
     collection_date,
@@ -85,31 +87,52 @@ sites <-
 
 ## Sample level/scale
 
-What is the PCA pattern among soil samples and locations?
+What is the PCA pattern at the sample level?
 
 ```{r}
 # Includes soil characteristics, gps coords, mgmt type, environment etc.
 sample_level <- soil %>% left_join(sites, by = join_by(site_id))
 
 # Drop non-numeric columns
-sample_level <- 
-  sample_level %>% 
-  mutate(label = stringr::str_remove(sample_id, "Soil_")) %>% 
-  column_to_rownames("label") %>% 
+sample_level_pca <-
+  sample_level %>%
+  mutate(label = stringr::str_remove(sample_id, "Soil_")) %>%
+  column_to_rownames("label") %>%
   select(!c(origin, collection_date, site_id, sample_id))
 
 
 # Run PCA
-pca_out <- prcomp(sample_level, scale = TRUE)
+pca_out <- prcomp(sample_level_pca, scale = TRUE)
 summary(pca_out)
 
-# % Variance explained by different PCs
+# Scree Plot: % Variance explained by different PCs
 eig_val <- factoextra::get_eigenvalue(pca_out)
-factoextra::fviz_eig(pca_out, col.var="blue")
+p1 <- factoextra::fviz_eig(pca_out, col.var = "blue")
 
 # Correlation of variables in each PC
 pca_var <- factoextra::get_pca_var(pca_out)
-corrplot::corrplot(pca_var$cos2, is.corr=FALSE)
+p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none")
 
-factoextra::fviz_pca_ind(pca_out, repel = F)
+# PCA labeled by sample
+p3 <- factoextra::fviz_pca_ind(pca_out, repel = F)
+
+# PCA colored by origin
+p4 <- fviz_pca_ind(
+  res.pca,
+  label = "none",
+  habillage = sample_level$origin,
+  mean.point = F,
+  palette = viridis::magma(n = length(unique(
+    sample_level$origin
+  )), end = 0.9)
+) + ggtitle("PCA: Sample level soil and site characteristics") + theme(legend.title = element_blank())
+
+# Save combined plot
+cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 2))
+ggsave(
+  "figures/PCA_by_sample.png",
+  height = 10,
+  width = 8,
+  dpi = "print"
+)
 ```
