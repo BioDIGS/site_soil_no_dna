@@ -6,15 +6,16 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
-library(caret)
+library(tidyverse)  # CRAN v2.0.0
+library(caret)      # CRAN v7.0-1
+library(factoextra) # CRAN v1.0.7
 ```
 
 ## Load Data
 
 ```{r}
 # Choose one: data_source <- c("local", "github", "google")
-data_source <- "local"
+data_source <- "google"
 ```
 
 
@@ -29,6 +30,11 @@ if (data_source == "local") {
   sites_full <- googlesheets4::read_sheet(
     "https://docs.google.com/spreadsheets/d/1Mbuym6GgG2B3VFCbjhYy4vaPCx1_tIOBlBOlT1iIHZE/edit?gid=476949426#gid=476949426",
     sheet = "SITE DATA"
+  )
+  soil_full <- googlesheets4::read_sheet(
+    "https://docs.google.com/spreadsheets/d/1Mbuym6GgG2B3VFCbjhYy4vaPCx1_tIOBlBOlT1iIHZE/edit?gid=476949426#gid=476949426",
+    sheet = "SOIL SAMPLES",
+    col_types = "c"
   )
 } else {
   # Public snapshot on github if not downloaded
@@ -126,15 +132,15 @@ pca_out <- prcomp(sample_level_pca, scale = TRUE)
 summary(pca_out)
 
 # Scree Plot: % Variance explained by different PCs
-eig_val <- factoextra::get_eigenvalue(pca_out)
-p1 <- factoextra::fviz_eig(pca_out, col.var = "blue")
+eig_val <- get_eigenvalue(pca_out)
+p1 <- fviz_eig(pca_out, col.var = "blue")
 
 # Correlation of variables in each PC
-pca_var <- factoextra::get_pca_var(pca_out)
+pca_var <- get_pca_var(pca_out)
 p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none")
 
 # PCA labeled by sample
-p3 <- factoextra::fviz_pca_ind(pca_out, repel = F)
+p3 <- fviz_pca_ind(pca_out, repel = F)
 
 # PCA colored by origin
 p4 <- fviz_pca_ind(
@@ -179,15 +185,15 @@ pca_out <- prcomp(site_level_pca, scale = TRUE)
 summary(pca_out)
 
 # Scree Plot: % Variance explained by different PCs
-eig_val <- factoextra::get_eigenvalue(pca_out)
-p1 <- factoextra::fviz_eig(pca_out, col.var = "blue")
+eig_val <- get_eigenvalue(pca_out)
+p1 <- fviz_eig(pca_out, col.var = "blue")
 
 # Correlation of variables in each PC
-pca_var <- factoextra::get_pca_var(pca_out)
+pca_var <- get_pca_var(pca_out)
 p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none")
 
 # PCA labeled by site
-p3 <- factoextra::fviz_pca_ind(pca_out, repel = F)
+p3 <- fviz_pca_ind(pca_out, repel = F)
 
 # PCA colored by origin
 p4 <- fviz_pca_ind(
@@ -229,15 +235,15 @@ pca_out <- prcomp(site_level_pca, scale = TRUE)
 summary(pca_out)
 
 # Scree Plot: % Variance explained by different PCs
-eig_val <- factoextra::get_eigenvalue(pca_out)
-p1 <- factoextra::fviz_eig(pca_out, col.var = "blue")
+eig_val <- get_eigenvalue(pca_out)
+p1 <- fviz_eig(pca_out, col.var = "blue")
 
 # Correlation of variables in each PC
-pca_var <- factoextra::get_pca_var(pca_out)
+pca_var <- get_pca_var(pca_out)
 p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none")
 
 # PCA labeled by site
-p3 <- factoextra::fviz_pca_ind(pca_out, repel = F)
+p3 <- fviz_pca_ind(pca_out, repel = F)
 
 # PCA colored by origin
 p4 <- fviz_pca_ind(
