@@ -7,6 +7,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(caret)
 ```
 
 ## Load Data
@@ -45,9 +46,12 @@ if (data_source == "local") {
 Drop some extra metadata columns:
 
 ```{r}
-sites <- sites_full %>% 
-  select(c(site_id, origin, gps, mgmt_type, pct_imp_2024)) %>% 
-  mutate(origin = case_when(origin %in% c("Derwood, MD", "Boyds, MD", "Germantown, MD", "Bethesda, MD") ~ "Montgomery Co., MD", TRUE ~ origin))
+sites <- sites_full %>%
+  select(c(site_id, origin, gps, mgmt_type, pct_imp_2024)) %>%
+  mutate(origin = case_when(
+    origin %in% c("Derwood, MD", "Boyds, MD", "Germantown, MD", "Bethesda, MD") ~ "Montgomery Co., MD",
+    TRUE ~ origin
+  ))
 soil <- soil_full %>% select(
   c(
     collection_date,
@@ -76,13 +80,28 @@ soil <-
   drop_na() %>% 
   mutate(across(4:27, as.numeric))
 
-# TODO: make mgmt type; region one hot encoded
-sites <- 
-  sites %>% 
-  tidyr::separate(gps, into = c("lat", "lon"), sep = ", ") %>% 
+sites <-
+  sites %>%
+  tidyr::separate(gps, into = c("lat", "lon"), sep = ", ") %>%
+  mutate(
+    mgmt_type = case_when(
+      mgmt_type %in% c(
+        "Botanical Garden",
+        "Mowed to control kudzu, but other than that unmanaged area"
+      ) ~ "Managed: mowed/tended lawns, yard, or park",
+      TRUE ~ mgmt_type
+    )
+  ) %>% # Group a few single mgmt types
   mutate(mgmt_type = as.numeric(as.factor(mgmt_type))) %>% # Make factor and numeric
-  drop_na() %>% 
-  mutate(across(3:6, as.numeric))
+  drop_na() %>%
+  mutate(across(c(3:6), as.numeric)) %>%
+  mutate(mgmt_type = as.factor(mgmt_type))
+
+mgmt_dummy <- dummyVars(" ~ .", data = sites[, "mgmt_type"])
+mgmt_onehot <- data.frame(predict(mgmt_dummy, newdata = sites[, "mgmt_type"]))
+
+sites <-
+  sites %>% select(!mgmt_type) %>% bind_cols(mgmt_onehot)
 ```
 
 ## Sample level/scale
@@ -184,6 +203,56 @@ p4 <- fviz_pca_ind(
 cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 2))
 ggsave(
   "figures/PCA_by_site.png",
+  height = 10,
+  width = 8,
+  dpi = "print"
+)
+```
+
+## Site level, without soil
+
+What is the PCA pattern at the site level, using mainly public data, with no soil characteristic data?
+
+```{r}
+# Sites only.. drop non-numeric columns
+site_level_pca <-
+  sites %>%
+  rownames_to_column("drop") %>% 
+  select(!drop) %>% 
+  column_to_rownames("site_id") %>%
+  select(!c(origin))
+
+
+# Run PCA
+pca_out <- prcomp(site_level_pca, scale = TRUE)
+summary(pca_out)
+
+# Scree Plot: % Variance explained by different PCs
+eig_val <- factoextra::get_eigenvalue(pca_out)
+p1 <- factoextra::fviz_eig(pca_out, col.var = "blue")
+
+# Correlation of variables in each PC
+pca_var <- factoextra::get_pca_var(pca_out)
+p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none")
+
+# PCA labeled by site
+p3 <- factoextra::fviz_pca_ind(pca_out, repel = F)
+
+# PCA colored by origin
+p4 <- fviz_pca_ind(
+  pca_out,
+  label = "none",
+  habillage = sites$origin,
+  mean.point = F,
+  palette = viridis::magma(n = length(unique(
+    sites$origin
+  )), end = 0.9)
+) + ggtitle("PCA: Site level characteristics only (no soil measures)") + theme(legend.title = element_blank())
+
+# Save combined plot
+cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 2))
+ggsave(
+  "figures/PCA_by_site_no_soil.png",
   height = 10,
   width = 8,
   dpi = "print"
