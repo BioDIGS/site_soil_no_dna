@@ -89,6 +89,7 @@ sites <-
         "Botanical Garden",
         "Mowed to control kudzu, but other than that unmanaged area"
       ) ~ "Managed: mowed/tended lawns, yard, or park",
+      mgmt_type == "not yet provided" ~ NA,
       TRUE ~ mgmt_type
     )
   ) %>% # Group a few single mgmt types
