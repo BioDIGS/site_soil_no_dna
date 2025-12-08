@@ -290,7 +290,7 @@ ggsave(
 )
 ```
 
-## Site level, without soil
+## Site level, without soil, sampling dates
 
 What is the PCA pattern at the site level, using mainly public data, with no soil characteristic data?
 
