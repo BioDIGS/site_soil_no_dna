@@ -1,0 +1,46 @@
+longname,shortname
+site_id,
+origin,
+lat,Latitude
+lon,Longitude
+mgmt_type,Management type
+pct_imp_2024,Percent impervious
+usda_plant_hardiness_2023,Hardiness zone
+tree_canopy_cover_2023,Tree canopy cover
+sandtotal_r,Sand fraction (WSS)
+silttotal_r,Silt fraction (WSS)
+claytotal_r,Clay fraction (WSS)
+om_r,Organic matter (WSS)
+fao_gsoc,Organic carbon (FAO)
+fao_oxygen_class,Soil oxygen (FAO)
+fao_salt_class,Salt (FAO)
+fao_nutrient_class,Nutrient availability (FAO)
+fao_clay_frac,Clay fraction (FAO)
+fao_gravel_frac,Gravel fraction (FAO)
+fao_sand_frac,Sand fraction (FAO)
+fao_ph,pH (FAO)
+fao_water_capacity_class,Water holding capacity
+elevation,Elevation
+CEC_landcover_2020Barren.lands..where.vegetation.accounts.for.less.than.10.percent.of.total.cover,Barren lands (CEC)
+CEC_landcover_2020Cropland,Cropland (CEC)
+CEC_landcover_2020Mixed.forest,Mixed forest (CEC)
+CEC_landcover_2020Temperate.or.sub.polar.broadleaf.deciduous.forest,Temperate deciduous forest (CEC)
+CEC_landcover_2020Temperate.or.sub.polar.grassland,Temperate grassland (CEC)
+CEC_landcover_2020Temperate.or.sub.polar.needleleaf.forest,Temperate needleleaf forest (CEC)
+CEC_landcover_2020Temperate.or.sub.polar.shrubland,Temperate shrubland (CEC)
+CEC_landcover_2020Tropical.or.sub.tropical.shrubland,Subtropical shrubland (CEC)
+CEC_landcover_2020Urban.and.built.up,Urban (CEC)
+CEC_landcover_2020Water..generally.with.less.than.25.percent.cover.of.non.water.cover.types,Water (CEC)
+CEC_landcover_2020Wetland,Wetland (CEC)
+NLCD_landcover_2024Cultivated.Crops,Crops (NLCD)
+NLCD_landcover_2024Deciduous.Forest,Deciduous forest (NLCD)
+NLCD_landcover_2024Developed..High.Intensity,Developed high intensity (NLCD)
+NLCD_landcover_2024Developed..Low.Intensity,Developed low intensity (NLCD)
+NLCD_landcover_2024Developed..Medium.Intensity,Developed medium intensity (NLCD)
+NLCD_landcover_2024Developed..Open.Space,Open space (NLCD)
+NLCD_landcover_2024Emergent.Herbaceous.Wetlands,Herbaceous wetlands (NLCD)
+NLCD_landcover_2024Grassland.Herbaceous,Grassland (NLCD)
+NLCD_landcover_2024Mixed.Forest,Mixed forest (NLCD)
+NLCD_landcover_2024Pasture.Hay,Pasture (NLCD)
+NLCD_landcover_2024Shrub.Scrub,Shrubland (NLCD)
+NLCD_landcover_2024Woody.Wetlands,Woody wetlands (NLCD)
