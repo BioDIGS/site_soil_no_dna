@@ -11,6 +11,8 @@ library(caret)      # CRAN v7.0-1
 library(factoextra) # CRAN v1.0.7
 ```
 
+# Data Preparation
+
 ## Load Data
 
 Select the data source:
@@ -115,7 +117,15 @@ soil <-
       ends_with("Mehlich3"),
       Est_CEC,
       Base_Sat_pct,
-      P_Sat_ratio
+      P_Sat_ratio,
+      vap,
+      pre,
+      cld,
+      tmp,
+      frs,
+      dtr,
+      pet,
+      wet
     )
   )
 ```
@@ -130,7 +140,7 @@ soil <-
   mutate(Cd_EPA3051 = case_when(Cd_EPA3051 %in% c("< 0.2", "<0.2") ~ "0", TRUE ~ Cd_EPA3051)) %>%
   mutate(Cu_EPA3051 = case_when(Cu_EPA3051 %in% c("< 2.0", "<2.0") ~ "0", TRUE ~ Cu_EPA3051)) %>%
   drop_na() %>%
-  mutate(across(4:27, as.numeric))
+  mutate(across(4:35, as.numeric))
 
 sites <-
   sites %>%
@@ -185,6 +195,12 @@ sites <-
   bind_cols(NLCD_landcover_onehot)
 ```
 
+<!-- ----------------------------------------------------------------------------- -->
+
+# PCA Analysis
+
+<!-- ----------------------------------------------------------------------------- -->
+
 ## Sample level/scale
 
 What is the PCA pattern at the sample level?
@@ -200,6 +216,20 @@ sample_level_pca <-
   column_to_rownames("label") %>%
   select(!c(origin, collection_date, site_id, sample_id))
 
+# Get clean var names
+clean_names <- data.frame(longname = names(sample_level_pca))
+names_dic <- read_csv("resources/variable_names.csv")
+all_clean_names <- clean_names %>% left_join(names_dic) %>% pull(shortname)
+colnames(sample_level_pca) <- all_clean_names
+
+# Remove any columns with zero variance
+variance_check <- 
+  t(sample_level_pca %>% summarize(across(everything(), var))) %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  filter(V1 == 0) %>% 
+  pull(rowname)
+sample_level_pca <- sample_level_pca %>% select(!c(variance_check))
 
 # Run PCA
 pca_out <- prcomp(sample_level_pca, scale = TRUE)
@@ -211,7 +241,9 @@ p1 <- fviz_eig(pca_out, col.var = "blue")
 
 # Correlation of variables in each PC
 pca_var <- get_pca_var(pca_out)
-p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none")
+p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + 
+  theme(legend.position = "none") + 
+  theme(axis.text.x = element_text(size = 7))
 
 # PCA labeled by sample
 p3 <- fviz_pca_ind(pca_out, repel = F)
@@ -225,14 +257,14 @@ p4 <- fviz_pca_ind(
   palette = viridis::magma(n = length(unique(
     sample_level$origin
   )), end = 0.9)
-) + ggtitle("PCA: Sample level soil and site characteristics") + theme(legend.title = element_blank())
+) + ggtitle("PCA: Sample level soil and site characteristics") + theme(legend.title = element_blank()) 
 
 # Save combined plot
-cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 2))
+cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 5))
 ggsave(
   "figures/PCA_by_sample.png",
-  height = 10,
-  width = 8,
+  height = 8,
+  width = 10,
   dpi = "print"
 )
 ```
@@ -253,6 +285,20 @@ site_level_pca <-
   column_to_rownames("site_id") %>%
   select(!c(origin))
 
+# Get clean var names
+clean_names <- data.frame(longname = names(site_level_pca))
+names_dic <- read_csv("resources/variable_names.csv")
+all_clean_names <- clean_names %>% left_join(names_dic) %>% pull(shortname)
+colnames(site_level_pca) <- all_clean_names
+
+# Remove any columns with zero variance
+variance_check <- 
+  t(site_level_pca %>% summarize(across(everything(), var))) %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  filter(V1 == 0) %>% 
+  pull(rowname)
+site_level_pca <- site_level_pca %>% select(!c(variance_check))
 
 # Run PCA
 pca_out <- prcomp(site_level_pca, scale = TRUE)
@@ -264,7 +310,7 @@ p1 <- fviz_eig(pca_out, col.var = "blue")
 
 # Correlation of variables in each PC
 pca_var <- get_pca_var(pca_out)
-p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none")
+p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + theme(legend.position = "none") + theme(axis.text.x = element_text(size = 7))
 
 # PCA labeled by site
 p3 <- fviz_pca_ind(pca_out, repel = F)
@@ -281,11 +327,11 @@ p4 <- fviz_pca_ind(
 ) + ggtitle("PCA: Site level soil and site characteristics") + theme(legend.title = element_blank())
 
 # Save combined plot
-cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 2))
+cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 5))
 ggsave(
   "figures/PCA_by_site.png",
-  height = 10,
-  width = 8,
+  height = 8,
+  width = 10,
   dpi = "print"
 )
 ```
@@ -335,7 +381,7 @@ p4 <-
   ) +
   ggtitle("PCA: Site level characteristics only (no soil measures)") +
   theme(legend.title = element_blank()) +
-  scale_shape_manual(values = c(1:25, 1, 2))
+  scale_shape_manual(values = c(1:25, 7, 8))
 
 
 # Save combined plot

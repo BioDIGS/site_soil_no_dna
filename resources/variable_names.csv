@@ -44,3 +44,35 @@ NLCD_landcover_2024Mixed.Forest,Mixed forest (NLCD)
 NLCD_landcover_2024Pasture.Hay,Pasture (NLCD)
 NLCD_landcover_2024Shrub.Scrub,Shrubland (NLCD)
 NLCD_landcover_2024Woody.Wetlands,Woody wetlands (NLCD)
+As_EPA3051,Arsenic
+Cd_EPA3051,Cadmium
+Cr_EPA3051,Chromium
+Cu_EPA3051,Copper
+Ni_EPA3051,Nickel
+Pb_EPA3051,Lead
+Zn_EPA3051,Zinc (EPA)
+water_pH,pH (soil test)
+OM_by_LOI_pct,Organic matter (soil test)
+P_Mehlich3,Phosphorus
+K_Mehlich3,Potassium
+Ca_Mehlich3,Calcium
+Mg_Mehlich3,Magnesium
+Mn_Mehlich3,Manganese
+Zn_Mehlich3,Zinc (Mehlich)
+Cu_Mehlich3,Copper (Mehlich)
+Fe_Mehlich3,Iron
+B_Mehlich3,Boron
+S_Mehlich3,Sulfur
+Na_Mehlich3,Sodium
+Al_Mehlich3,Aluminum
+Est_CEC,Cation exchange capacity
+Base_Sat_pct,Base ion saturation
+P_Sat_ratio,Phosphorus sat. ratio
+vap,Vapor pressure
+pre,Precipitation
+cld,Cloud cover
+tmp,Temperature
+frs,Freezing days
+dtr,Diurnal range
+pet,Potential evapotranspiration
+wet,Wet days
