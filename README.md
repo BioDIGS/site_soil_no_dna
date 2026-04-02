@@ -4,7 +4,7 @@ The goal with these PCAs is to understand the difference among sampling location
 
 **Site-level variation**
 
-The following takes into account site-level data, primarily geospatial information.Each point represents a site.
+The following takes into account site-level data, primarily geospatial information. Each point represents a site.
 
 ![](figures/PCA_by_site_no_soil.png)
 
