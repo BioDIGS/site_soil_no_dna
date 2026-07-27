@@ -249,6 +249,7 @@ variance_check <-
 sample_level_pca <- sample_level_pca %>% select(!c(variance_check))
 
 # Run PCA
+# -------
 pca_out <- prcomp(sample_level_pca, scale = TRUE)
 summary(pca_out)
 # -------
