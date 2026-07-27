@@ -251,30 +251,57 @@ sample_level_pca <- sample_level_pca %>% select(!c(variance_check))
 # Run PCA
 pca_out <- prcomp(sample_level_pca, scale = TRUE)
 summary(pca_out)
+# -------
 
 # Scree Plot: % Variance explained by different PCs
 eig_val <- get_eigenvalue(pca_out)
 p1 <- fviz_eig(pca_out, col.var = "blue")
 
+# Clean up PCA data for plotting
+# Location of points
+pca_x <- pca_out$x[, 1:2] |> as.data.frame() |> rownames_to_column()
+pca_x$origin <- sample_level$origin
+# variance explained
+var_explained <- eig_val[1:2,]$variance.percent
+
+# Create vector of shapes that are substantially different for plotting points:
+possible_shapes <- rep(c(1:13, 15:18),10)
+shape_n <- pca_x |> pull(origin) |> n_distinct()
+the_shapes <- possible_shapes[1:shape_n]
+
 # Correlation of variables in each PC
 pca_var <- get_pca_var(pca_out)
-p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) + 
-  theme(legend.position = "none") + 
+p2 <- ggcorrplot::ggcorrplot(pca_var$cos2[, 1:2]) +
+  scale_y_discrete(labels = c("Dim.1" = "PC1", "Dim.2" = "PC2")) +
+  theme(legend.position = "none") +
   theme(axis.text.x = element_text(size = 7))
 
 # PCA labeled by sample
 p3 <- fviz_pca_ind(pca_out, repel = F)
 
 # PCA colored by origin
-p4 <- fviz_pca_ind(
-  pca_out,
-  label = "none",
-  habillage = sample_level$origin,
-  mean.point = F,
-  palette = viridis::magma(n = length(unique(
+p4 <- ggplot() +
+  geom_point(data = pca_x,
+             aes(x = PC1, y = PC2, color = origin, shape = origin)) +
+  scale_color_manual(values = viridis::magma(n = length(unique(
     sample_level$origin
-  )), end = 0.9)
-) + ggtitle("PCA: Sample level soil and site characteristics") + theme(legend.title = element_blank()) 
+  )), end = 0.9)) +
+  scale_shape_manual(values = the_shapes) +
+  labs(
+    x = paste0("PC1 (", signif(var_explained[1],3), "%)"),
+    y = paste0("PC2 (", signif(var_explained[2],2), "%)")
+  ) +
+  theme_minimal() +
+  guides(col = guide_legend(ncol = 2)) +
+  theme(
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.height = unit(0.5, "cm"),
+    panel.grid.major = element_line(color = "gray95")
+  ) +
+  geom_hline(yintercept = 0, linetype='dashed', col = 'black') +
+  geom_vline(xintercept = 0, linetype='dashed', col = 'black') + 
+  ggtitle("PCA: Sample level soil and site characteristics") + theme(legend.title = element_blank()) 
 
 # Save combined plot
 cowplot::plot_grid(p4, p2, ncol = 1, rel_heights = c(8, 5))
@@ -282,6 +309,110 @@ ggsave(
   "figures/PCA_by_sample.png",
   height = 8,
   width = 10,
+  dpi = "print"
+)
+```
+
+Sample level/scale but plot variations for publication: Top 10 weights for PC1 & PC2.
+
+```{r}
+# Top weighted inputs; pca_var created above
+cos2_top2 <- pca_var$cos2[, 1:2] |> as.data.frame() |> rownames_to_column()
+cos2_d1 <- cos2_top2 |> arrange(desc(`Dim.1`)) |> head(10)
+cos2_d2 <- cos2_top2 |> arrange(desc(`Dim.2`)) |> head(10)
+cos2_top2_top10 <- bind_rows(cos2_d1, cos2_d2) |> column_to_rownames() |> as.matrix()
+
+# Correlation of variables in each PC
+p2 <- ggcorrplot::ggcorrplot(cos2_top2_top10) +
+  scale_y_discrete(labels = c("Dim.1" = "PC1", "Dim.2" = "PC2")) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(size = 10))
+
+# PCA colored by origin - move the legend around a bit
+p4a <- p4 +
+  guides(col = guide_legend(ncol = 3)) +
+  cowplot::theme_cowplot() +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.key.height = unit(-.25, "cm"),
+    plot.title = element_blank(),
+    panel.grid.major = element_line(color = "gray95")
+  )
+
+# Save combined plot
+cowplot::plot_grid(p4a, p2, ncol = 1, rel_heights = c(8, 2))
+ggsave(
+  "figures/PCA_by_sample_clean.png",
+  height = 10,
+  width = 6,
+  dpi = "print"
+)
+```
+
+```{r}
+# Create data for rotation "spokes"
+pca_load <- as.data.frame(pca_out$rotation)[1:2]
+pca_score <- pca_out$x[, 1:2] |> as.data.frame()
+scale <- min(max(abs(pca_score$PC1)) / max(abs(pca_load$PC1)), max(abs(pca_score$PC2)) / max(abs(pca_load$PC2))) * 0.8
+
+the_dat <-
+  as.data.frame(pca_load * scale) |>
+  rownames_to_column() |>
+  # Keep only top 10 from each dimension
+  filter(rowname %in% c(cos2_d1$rowname, cos2_d2$rowname)) |>
+  # Merge some predictors into single "averaged" spokes
+  mutate(
+    label = case_when(
+      rowname %in% c("Copper (Mehlich)", "Copper", "Cadmium") ~ "Copper,\nCadmium",
+      rowname %in% c("Zinc (EPA)", "Zinc (Mehlich)", "Lead") ~ "Lead,\nZinc",
+      rowname %in% c("Urban (CEC)") ~ "Urban\nenvt.",
+      rowname %in% c("Hardiness zone") ~ "Hardiness\nzone",
+      rowname %in% c("pH (soil test)", "pH (FAO)") ~ "pH",
+      rowname %in% c("Salt (FAO)") ~ "Salt\ncontent",
+      rowname %in% c("Aluminum", "Nutrient availability (FAO)") ~ "Aluminum,\nNutrient\navail.",
+      rowname %in% c("Precipitation", "Longitude") ~ "Longitude,\nPrecipitation",
+      TRUE ~ rowname
+    )
+  ) |> group_by(label) |>
+  summarize(PC1 = mean(PC1), PC2 = mean(PC2)) |>
+  # Hjust and vjust for plotting purposes only
+  bind_cols(vjust = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)) |>
+  bind_cols(hjust = c(0.5, 0.5, 0.75, 0.5, 0.25, 0.5, 0.25, 0.75, 0.5, 0.5, 0.75, 0.5, 0.5))
+
+p5 <-
+  p4a +
+  geom_segment(
+    data = the_dat,
+    aes(
+      x = 0,
+      y = 0,
+      xend = PC1,
+      yend = PC2
+    ),
+    color = "salmon1",
+    arrow = arrow(angle = 25, length = unit(4, "mm"))
+  ) +
+  geom_label(
+    data = the_dat,
+    aes(
+      y = PC2,
+      x = PC1,
+      label = label,
+      vjust = vjust,
+      hjust = hjust
+    ),
+    alpha = 0.6,
+    size = 4,
+    colour = "black",
+    show.legend = FALSE
+  )
+  
+p5
+ggsave(
+  "figures/PCA_by_loading.png",
+  height = 10,
+  width = 7,
   dpi = "print"
 )
 ```
